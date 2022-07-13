@@ -2,6 +2,10 @@
 
 https://mixi-developers.mixi.co.jp/22-technical-training-5fc362a9dc41
 
+参考：
+
+https://git-scm.com/book/ja/v2/Git%E3%81%AE%E5%86%85%E5%81%B4-Git%E3%82%AA%E3%83%96%E3%82%B8%E3%82%A7%E3%82%AF%E3%83%88
+
 ## Git によるチーム開発のいろは
 
 世の中の version control system(VCS)には集中型と分散型の 2 つがある。
@@ -187,7 +191,7 @@ master や develop ブランチには何らかのルールが施されている�
 
 ## Git の内部構造
 
-git add したときに何が起こっているか:
+#### git add したときに何が起こっているか
 
 「コミットさせたいファイルを index に登録している」
 
@@ -208,7 +212,175 @@ Git は様々なデータをオブジェクトと呼ばれる概念で表現し�
 
 オブジェクトには次の 4 つがある
 
--   commit
--   tree
--   blod
--   tag
+-   commit: コミット情報が入っている
+-   tree: ディレクトリの情報が入っている
+-   blod: ファイルの情報が入っている
+-   tag: annotating tagの情報が入っている
+
+
+オブジェクトの実態は次の場所にzlib圧縮形式で保存されている
+
+`.git/objects/`
+
+先のやつならblobオブジェクトが
+
+`.git/objects/e2/3fs43232fsr432fse232`に保存されている
+
+各オブジェクトの中身を確認するためのコマンドがある
+
+`git cat-file -p <object-hash>`
+
+あたらしくファイルを作ってオブジェクトを確認してみると
+
+```bash
+$ echo "This is README" > README.md
+$ git add README.md
+$ git ls-files --stage
+100644 171cd12d63717a3f594589b2313e9470fcd1003c 0       README.md
+100644 d158b023ecbf9e0a69daa8536f04273587396977 0       initial-commit.txt
+
+# 新たにファイルを保存する
+$ echo hoge > hoge.txt
+$ git add hoge.txt
+$ git ls-files --stage
+100644 171cd12d63717a3f594589b2313e9470fcd1003c 0       README.md
+100644 2262de0c121f22df8e78f5a37d6e114fd322c0b0 0       hoge.txt
+100644 d158b023ecbf9e0a69daa8536f04273587396977 0       initial-commit.txt
+```
+
+**git addは基本的にindexの更新とblobオブジェクトの生成しかしていない**
+
+ディレクトリを作成してみる
+
+```bash
+# huga/huga.txtを作ってaddした
+$ git ls-files --stage
+100644 171cd12d63717a3f594589b2313e9470fcd1003c 0       README.md
+100644 2262de0c121f22df8e78f5a37d6e114fd322c0b0 0       hoge.txt
+100644 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391 0       huga/huga.txt
+100644 d158b023ecbf9e0a69daa8536f04273587396977 0       initial-commit.txt
+```
+
+ディレクトリの追加が起こったけれど、treeオブジェクトは生成していない
+
+#### git commitしたときに何が起こっているか
+
+##### tree object
+
+主にこの3つを行っているらしい
+
+1. indexからtreeオブジェクトを生成する
+2. commitオブジェクトを生成する
+3. HEADを新しいcommitハッシュへ書き換える
+
+treeオブジェクトはGitが管理するあらゆるコンテンツへの多くのポインタを含む
+
+コミットをすると、差分だけでなくて、リポジトリのルートディレクトリを含むすべてのディレクトリのtreeオブジェクトを自動で生成する。
+
+先のaddしてあったものをコミットして、treeオブジェクトをのぞいてみる
+
+```bash
+# master^{tree} のシンタックスは、
+# master ブランチ上での最後のコミットが指しているツリーオブジェクトを示します。
+# つまり最後のコミットのtreeオブジェクトをcat-fileしてねみたいなコマンド
+$ git cat-file -p master^{tree}
+100644 blob 171cd12d63717a3f594589b2313e9470fcd1003c    README.md
+100644 blob 2262de0c121f22df8e78f5a37d6e114fd322c0b0    hoge.txt
+040000 tree b5a33ea70f1cb1d361014f0f88a2f724fb9522ca    huga
+100644 blob d158b023ecbf9e0a69daa8536f04273587396977    initial-commit.txt
+```
+つまり、
+
+コミットするとそのディレクトリのファイル情報はblobオブジェクト
+
+ディレクトリの情報はtreeオブジェクトに保存する
+
+blobオブジェクトはファイルの情報、treeオブジェクトはblobオブジェクトと下層のディレクトリのtreeオブジェクトを保存する
+
+なのでコミットするとその時点のスナップショットを保存できるのである
+
+ファイルの状態、ディレクトリの状態をすべて記録するから。
+
+つまりtreeオブジェクトはある時点のスナップショット情報を参照できるということにもなる
+
+
+上記の各ファイルをそれぞれ変更してまたコミットしてみる
+
+```bash
+# 次のコミットしたあとのルートディレクトリのtreeオブジェクトの中身
+$ git cat-file -p master^{tree}
+100644 blob 4cf5010e7b78cfd61d33983044299260d21b9189    README.md
+100644 blob 1904c092b649dc54f3c8fc931acb0ca5bb952c3b    hoge.txt
+040000 tree 8406deefc043c8f56777cd1ca55610536442d1f3    huga
+100644 blob 5c6af654a3b833764a26e8baf849312555134997    initial-commit.txt
+```
+
+先のコミットと最新のコミットで各オブジェクトのSHA-1がまったく異なるのがわかる
+
+ということは、たとえばコミットを以前の状態に戻したいというときには
+
+その時のtreeオブジェクトが必ず必要になるということで
+
+どのtreeオブジェクトなの？の情報も必要になってくる
+
+それを収めるのがcommitオブジェクトである
+
+##### commit object
+
+commitオブジェクトが収めている情報
+
+- ルートディレクトリのtreeオブジェクトのSHA-1
+- committerとauthorのタイムスタンプ、名前、メアド
+- 親コミット・ノードのSHA-1
+- コミット・メッセージ
+
+確認方法解らん
+
+改善されているかどうかの確認：親コミットをcommitオブジェクトに含めることで改ざんされていないことが保証される
+
+commitオブジェクトの一部を変更（改ざん）すると、別のcommitハッシュに変わってしまうから
+
+ブロックチェーンと同じ仕組みみたい
+
+ということでここまでの簡単なまとめ：
+
+- commitをすると作られるオブジェクトは４つ
+    commit, tree, blob
+- blobオブジェクトはファイルの情報を保存するオブジェクトである。ファイルを復元するのにこの情報が必要である。
+- treeオブジェクトはその時点のスナップショットを保存するオブジェクトである。
+    ルートディレクトリのファイル情報を保存したblobファイルへのSHA-1、ルートディレクトリ以下のディレクトリを収めたtreeオブジェクトへのSHA-1を保存してあるので、その時点の状態を後から復元できる。
+    treeオブジェクトはディレクトリごとに作成される。
+- commitオブジェクトはスナップショットを取ったときのtreeオブジェクトのSHA-1とタイムスタンプ、コミットメッセージ、誰がコミットしたのかの情報
+- commitオブジェクトがtreeオブジェクトを参照しており、treeオブジェクトはblobオブジェクトを参照する
+
+#### HEAD
+
+コミットしたときに内部的に起こること仕上げ。
+
+commitオブジェクトを作ったら、Gitは最後にHEADを書き換える。
+
+HEADとは？その前にrefsを理解しないといかん。
+
+refsは特定のcommitを指すポインタのようなもの。 
+
+HEADは現在のcommitを指すrefsの一つである。
+
+checkoutするとHEADは書き変わっている。（別のコミットを指すことになるから）
+
+.git/HEADに保存されている
+
+```bash
+$ cat .git/HEAD
+ref: refs/heads/master
+```
+
+commitすると、HEADを書き換えるという話だけど
+
+- HEADが直接commitハッシュを参照している場合：HEADのcommitハッシュを書き換える
+
+    これってgit checkout commit-hashしているときにcommitした場合のことかしら？
+
+HEADがbranchを参照している場合：HEADが参照しているbranchのcommitハッシュを書き換える
+
+    ほとんどこの通りなんじゃないの？
+
