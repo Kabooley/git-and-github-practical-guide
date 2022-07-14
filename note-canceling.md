@@ -317,3 +317,101 @@ hint: and commit the result with 'git commit'
 
 先の2つまえのコミットを指定してrevertしたらrevertはできなくてコンフリクトが起こった
 
+#### git reset
+
+軽く復習:
+
+git checkoutはHEAD refポインタだけを指定のコミットへ移動するので、その操作は必ずdetacged HAEDになる
+
+detached HEAD上での操作は、元のブランチに戻れば無かったことになる
+detached HEADでコミットすると、そのコミットは孤立する
+detached HEADで新たなブランチを切っても、もとのブランチにmergeできない（conflictが起こる）
+
+git revertは直前のコミット内容を打ち消すように新たなコミットを生成する。
+
+git revertは2つ前のコミットに対してrevertしようとすると、revertはできなくてコンフリクトが起こる
+
+git resetはHEADrefもブランチrefも指定のブランチに移動する
+
+たとえば2つ前のコミットを指定すると、1つ前以降のコミットは孤立す。
+
+```bash
+# 一つのファイルを変更して、一つのファイルを新規追加してgit addした
+$ git add new-file.txt 
+$ git status
+On branch master
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   new-file.txt
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   initial-commit.txt
+# インデックスの状態を確認
+$ git ls-files -s
+100644 36db3e74125eff086804e547bcb87afb096e50e2 0       initial-commit.txt
+100644 2e35eb989a37ee7f7df45aa9f472b71e9b492b16 0       new-file.txt
+# 
+# reset --mixed HEADしてみる
+#   
+$ git reset --mixed HEAD
+Unstaged changes after reset:
+M       initial-commit.txt
+
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   initial-commit.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        new-file.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+$ git ls-files -s
+100644 36db3e74125eff086804e547bcb87afb096e50e2 0       initial-commit.txt
+```
+
+つまり、
+
+- indexされたことはなかったことになる
+
+  `git ls-files -s`で新しく追加したファイルのことがなくなっているし、
+  `git status`でuntrackedファイル扱いになっている
+  更新したファイル(initial-commit.txt)もステージングされていない扱いになっている
+
+- 作業ディレクトリへの変更はそのままだけど、
+- ステージングはキャンセルされて、
+- コミットは指定のコミットの状態にリセットされる。
+
+
+```bash
+# ファイルの更新と新規ファイルの追加をしてgit addした
+$ git ls-files -s
+100644 ca6137f59ff6211ec6473d9efc725e5570bc702a 0       initial-commit.txt
+100644 2e35eb989a37ee7f7df45aa9f472b71e9b492b16 0       new-file.txt
+
+$ git reset --mixed HEAD
+Unstaged changes after reset:
+M       initial-commit.txt
+$ git status
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   initial-commit.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        new-file.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+# 更新した方のファイルはインデックスされる前のSHA-1になっている
+# つまり以前のコミット時のSHA-1値である
+$ git ls-files -s
+100644 36db3e74125eff086804e547bcb87afb096e50e2 0       initial-commit.txt
+```
