@@ -317,19 +317,29 @@ hint: and commit the result with 'git commit'
 
 先の2つまえのコミットを指定してrevertしたらrevertはできなくてコンフリクトが起こった
 
-#### git reset
+#### git reset --mixed HEAD
 
-軽く復習:
+先にまとめ：
+- HEAD, indexが書き換えられて、作業ツリーがそのままになる
+
+    つまりファイルの編集やファイルの追加などはそのままだけど、
+    .git/indexに登録されたファイルがなくなり、
+    HEADとブランチは一つ前のコミットを指す
+
+- ステージングがなかったことになるのでblobファイルはすべて一つ前のコミットの時のものになる
+
+- なのでaddをしたことだけを取り消して、編集内容などはそのまま残したいときは--mixed HEADを使うといい
+
+軽く復習 ---
 
 git checkoutはHEAD refポインタだけを指定のコミットへ移動するので、その操作は必ずdetacged HAEDになる
-
 detached HEAD上での操作は、元のブランチに戻れば無かったことになる
 detached HEADでコミットすると、そのコミットは孤立する
 detached HEADで新たなブランチを切っても、もとのブランチにmergeできない（conflictが起こる）
-
 git revertは直前のコミット内容を打ち消すように新たなコミットを生成する。
-
 git revertは2つ前のコミットに対してrevertしようとすると、revertはできなくてコンフリクトが起こる
+
+---
 
 git resetはHEADrefもブランチrefも指定のブランチに移動する
 
@@ -384,9 +394,7 @@ $ git ls-files -s
   `git status`でuntrackedファイル扱いになっている
   更新したファイル(initial-commit.txt)もステージングされていない扱いになっている
 
-- 作業ディレクトリへの変更はそのままだけど、
-- ステージングはキャンセルされて、
-- コミットは指定のコミットの状態にリセットされる。
+- 作業ディレクトリへの変更はそのままだけど、ステージングはキャンセルされて、コミットは指定のコミットの状態にリセットされる。
 
 
 ```bash
@@ -415,3 +423,117 @@ no changes added to commit (use "git add" and/or "git commit -a")
 $ git ls-files -s
 100644 36db3e74125eff086804e547bcb87afb096e50e2 0       initial-commit.txt
 ```
+
+2つ以上まえのコミットを指定するとどうなるか
+
+```bash
+# 一度コミットをして、
+$ git log --oneline
+2b3cef7 (HEAD -> master) Make sure reset--mixed if specified 2 commit ago
+3b6f08b Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+# そのコミットの一つ前のコミットでgit reset --mixedを行った
+$ git reset --mixed 3b6f08b
+Unstaged changes after reset:
+M       initial-commit.txt
+# HEADもブランチも指定のコミットへ戻った
+$ git log --oneline
+3b6f08b (HEAD -> master) Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+# 検証１：2b3cef7のコミット内容は作業ツリーに残っているのか？
+# 
+# 結果：各ファイルの最後の行がコミットしたときに追加した文章で、これが残っている
+$ cat reset.txt
+make sure how reset works
+make sure 2 commit reset
+
+$ cat initial-commit.txt
+Write some text at first time
+Make some important changes to initial-commit.txt
+Add something crazy
+make sure what tree object is
+make sure how reset works
+make sure 2 commit reset
+# なのでこのままadd, commitすればresetする前のコミットの通りになる
+```
+
+2つ以上前のコミットを指定して`git reset --mixed`したら、その間のコミット内容はすべて作業ツリーへ戻されるので、
+
+そのままコミットすればresetするまえのコミットの通りになる
+
+#### git reset --hard HEAD
+
+結論：
+
+- 作業ツリーは書き変わる、indexは書き変わる、HEAD、ブランチは指定のコミットを指す
+
+つまり、--hardにするとステージングだけじゃなくて、編集したファイルや追加、削除したファイルもなかったことになるので
+
+完全に指定したコミットの直後の状態に戻される
+
+検証１：
+
+既存ファイル更新: initial-commit.txt、
+既存ファイル１つ削除: reset.txt、
+新規ファイル追加：reset-hard.txt
+git add .し、reset --hard HEADした
+
+```bash
+# addしたあと
+$ git ls-files -s
+100644 4cf5010e7b78cfd61d33983044299260d21b9189 0       README.md
+100644 1904c092b649dc54f3c8fc931acb0ca5bb952c3b 0       hoge.txt
+100644 1618b9c3afe455248859eea088e09b571acab392 0       huga/huga.txt
+100644 a2fbecb07e63156bcf56ece45564f6d1c55a65e2 0       initial-commit.txt
+100644 920678635e2bf1e679087a9b14bf342fd02cd15b 0       reset-hard.txt
+
+$ git reset --hard HEAD
+HEAD is now at 44d5191 Made sure how reset-mixed works
+
+# 作業ツリーもクリーンである
+# 新規に追加したファイルがどこにも存在しない
+$ git status
+On branch master
+nothing to commit, working tree clean
+
+
+$ git ls-files -s
+100644 4cf5010e7b78cfd61d33983044299260d21b9189 0       README.md
+100644 1904c092b649dc54f3c8fc931acb0ca5bb952c3b 0       hoge.txt
+100644 1618b9c3afe455248859eea088e09b571acab392 0       huga/huga.txt
+# 元に戻っているのがわかる
+100644 da4528a61a2f56cf348ec8567cc03a56434c110d 0       initial-commit.txt
+# 削除したファイルも戻っている
+100644 13a430dcab6be55ccae190467062dd451a057338 0       reset.txt
+```
+
+間違いなく指定のコミットの直後の状態に戻っている
+
+検証２：
+
+2つ以上前のコミットを指定してみる
+
+--mixedではすべて作業ツリーに戻されたが、--hardではどうなるか
+
+って書くまでもないけど（確認はしたけど）、
+
+指定したコミットの直後の状態に戻るだけだから作業ツリーもインデックスも空である。
+
+--mixedはリセット前の状態を作業ツリーに残しておけるけど
+--hardは完全に指定のコミットの直後のクリーンな状態に作業ツリーもインデックスも戻される
+
+#### git reset --soft
+
+ちょっと割愛
