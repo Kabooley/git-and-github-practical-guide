@@ -157,13 +157,13 @@ Date:   Wed Jun 29 00:52:37 2022 +0900
 
 https://qiita.com/ymzkjpx/items/00ff664da60c37458aaa
 
--   ブランチとはコミットを指すポインタである
+- ブランチとはコミットを指すポインタである
 
 これの意味するところは、ブランチで分岐させたこれまでのそのブランチ上でのコミットすべてがブランチではなくて、ブランチは分岐した枝上の最新のコミットひとつだけを指しているに過ぎないということである
 
 新しいブランチを生成することは、新しいポインタを作られるだけである
 
--   コミットとは
+- コミットとは
 
 #### 44: Undoing staged changing
 
@@ -204,13 +204,13 @@ file:///C:/Program%20Files/Git/mingw64/share/doc/git-doc/git-checkout.html
 
 branch を指定しなかった場合...
 
--   `git checkout [<tree-ish>] [--] <pathspec>`
+- `git checkout [<tree-ish>] [--] <pathspec>`
 
 > インデックスまたは <tree-ish> (ほとんどの場合コミット) の内容で置き換えることにより、作業ツリーのパスを上書きします。<tree-ish> が指定された場合、<pathspec> にマッチするパスはインデックスと作業木の両方で更新されます。
 
 > インデックスには、以前のマージの失敗により、未マージの項目が含まれている可能性があります。デフォルトでは、このようなエントリをインデックスからチェックアウトしようとすると、チェックアウト操作に失敗し、何もチェックアウトされません。f を使用すると、これらの未マージエントリを無視することができます。マージの特定の側からのコンテンツは、--ours または --theirs を使用してインデックスからチェックアウトすることができます。m を使用すると、作業ツリーファイルへの変更を破棄して、元の競合するマージ結果を再作成することができます。
 
--   `<tree-ish>`
+- `<tree-ish>`
 
 (path が渡されたなら)チェックアウトするツリーのこと。
 特定できない path だったら、index が使用される
@@ -271,9 +271,9 @@ https://www.atlassian.com/ja/git/tutorials/resetting-checking-out-and-reverting
 
 https://www.atlassian.com/ja/git/tutorials/undoing-changes/git-reset
 
--   作業ディレクトリ working directory
--   ステージングインデックス Staged Snapshot
--   コミット履歴 Commit History
+- 作業ディレクトリ working directory
+- ステージングインデックス Staged Snapshot
+- コミット履歴 Commit History
 
 作業ディレクトリ：
 
@@ -296,3 +296,191 @@ https://www.atlassian.com/ja/git/tutorials/undoing-changes/git-reset
 コミット・ヒストリー：
 
 > コミット履歴内にある永続的なスナップショットに変更を追加します。このスナップショットには、コミット時のステージング インデックスの状態も含まれます。
+
+## 47: Commit changing by detached HEAD
+
+detached HEAD おさらい：
+
+- detached HEAD はブランチと同じコミットを指していないときの HEAD ref である
+- detached HEAD でのあらゆる変更はもとのコミットに戻ると、どのブランチにも影響を与えずになかったことになる
+- detached HEAD でのコミットは孤立し、もとのブランチに戻るとそのコミットは破棄される
+- detached HEAD でのコミットは、どのブランチにも参照されない
+
+検証:
+
+では以前のコミットをチェックアウトして作業ツリーにロードし、
+
+それに変更を加えてからコミットして、マスターブランチに追加したらどうなるか
+
+```bash
+# dummy.txtを追加してコミットした
+$ git log --oneline
+bafb391 (HEAD -> master) Added dummy file to make sure how detached HEAD works
+44d5191 Made sure how reset-mixed works
+3b6f08b Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+
+# 一つ前のコミットをチェックアウトする
+#
+# detached HEADになった
+$ git checkout 44d5191
+Note: switching to '44d5191'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at 44d5191 Made sure how reset-mixed works
+
+# 一つ前のコミットなのでdummy.txtはない
+$ ls
+hoge.txt  huga  initial-commit.txt  README.md  reset.txt
+
+# 一つ前のコミットなのでブランチrefのコミットはない
+$ git log --oneline
+44d5191 (HEAD) Made sure how reset-mixed works
+3b6f08b Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+
+# detached HEAD状態でファイルに変更を加えて
+$ echo "Detached HEAD to fix forgotten things" >> initial-commit.txt
+$ cat initial-commit.txt
+Write some text at first time
+Make some important changes to initial-commit.txt
+Add something crazy
+make sure what tree object is
+make sure how reset works
+make sure 2 commit reset
+Detached HEAD to fix forgotten things
+
+$ touch detached.txt
+
+$ git status
+HEAD detached at 44d5191
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   initial-commit.txt
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        detached.txt
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+# detached HEADでの変更をコミットする
+$ git add .
+$ git status
+HEAD detached at 44d5191
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+        new file:   detached.txt
+        modified:   initial-commit.txt
+$ git commit -m "Changes made in detached HEAD"
+[detached HEAD 1e16572] Changes made in detached HEAD
+ 2 files changed, 1 insertion(+)
+ create mode 100644 detached.txt
+
+# 新しいコミットが生成された
+$ git log --oneline
+1e16572 (HEAD) Changes made in detached HEAD
+44d5191 Made sure how reset-mixed works
+3b6f08b Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+
+# masterに戻ると...
+#
+# どこからも参照されていないコミットを置いてきているよとメッセージ
+#
+# (detached HEADから派生した)新しいブランチを作成することを提案されている
+$ git switch master
+Warning: you are leaving 1 commit behind, not connected to
+any of your branches:
+
+  1e16572 Changes made in detached HEAD
+
+If you want to keep it by creating a new branch, this may be a good time
+to do so with:
+
+ git branch <new-branch-name> 1e16572
+
+Switched to branch 'master'
+
+# その通りにブランチを作成した
+$ git branch detached-branch 1e16572
+
+
+# 新しく作成したdetached HEAD派生のブランチ
+$ git switch detached-branch
+Switched to branch 'detached-branch'
+$ ls
+detached.txt  hoge.txt  huga  initial-commit.txt  README.md  reset.txt
+$ git switch master
+Switched to branch 'master'
+
+# mergeしたら...
+$ git merge detached-branch
+Merge made by the 'recursive' strategy.
+ detached.txt       | 0
+ initial-commit.txt | 1 +
+ 2 files changed, 1 insertion(+)
+ create mode 100644 detached.txt
+
+
+# detached HEADする前のコミットが残っているのが確認できる。
+$ git log --oneline
+ea096b5 (HEAD -> master) Merge branch 'detached-branch' into master
+1e16572 (detached-branch) Changes made in detached HEAD
+bafb391 Added dummy file to make sure how detached HEAD works
+44d5191 Made sure how reset-mixed works
+3b6f08b Make sure what tree object is 2
+029342a make sure tree object
+00203e3 Revert "Revert "Try something crazy""
+71e8b44 Revert "Try something crazy"
+815499b Try something crazy
+3bc319b Make some important changes to initial-commit.txt
+4afcc73 Write text to initial-commit.txt
+530cfab first commit
+
+# detached HEADする前のコミットで追加されたファイルdummy.txtが残っているのがわかる
+$ ls
+detached.txt  dummy.txt  hoge.txt  huga  initial-commit.txt  README.md  reset.txt
+
+```
+
+以前は detached HEAD で git switch -c <new-branch-name>で派生させたブランチを merge させたら
+
+コンフリクトが起こった。
+
+今回と前回の違いは何だろう。
+
+検証する必要はある。
