@@ -296,3 +296,45 @@ https://www.atlassian.com/ja/git/tutorials/undoing-changes/git-reset
 コミット・ヒストリー：
 
 > コミット履歴内にある永続的なスナップショットに変更を追加します。このスナップショットには、コミット時のステージング インデックスの状態も含まれます。
+
+
+## .gitignore
+
+Gitが無視するデータ、ファイル、ディレクトリをこのファイルに記述すると
+
+Gitは以降それらを追跡しない。
+
+こんな使い方
+
+```bash
+# 特定のファイルだけ追跡する
+# 
+# text.txtだけ追跡する
+!text.txt
+```
+
+## Section Wrap up
+
+コマンド気になったのまとめ
+
+```bash
+# WD File*
+git rm <filename>
+git add <filename>
+
+# undoing unstaged changes
+git checkout (--) .
+git restore <filename> or .
+
+# undoing staged changes
+git reset filename
+# and
+git checkout -- filename
+# or
+git restore --staged filename or .
+
+
+```
+
+#### 課題１
+
