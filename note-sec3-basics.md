@@ -484,3 +484,44 @@ detached.txt  dummy.txt  hoge.txt  huga  initial-commit.txt  README.md  reset.tx
 今回と前回の違いは何だろう。
 
 検証する必要はある。
+
+## .gitignore
+
+Gitが無視するデータ、ファイル、ディレクトリをこのファイルに記述すると
+
+Gitは以降それらを追跡しない。
+
+こんな使い方
+
+```bash
+# 特定のファイルだけ追跡する
+# 
+# text.txtだけ追跡する
+!text.txt
+```
+
+## Section Wrap up
+
+コマンド気になったのまとめ
+
+```bash
+# WD File*
+git rm <filename>
+git add <filename>
+
+# undoing unstaged changes
+git checkout (--) .
+git restore <filename> or .
+
+# undoing staged changes
+git reset filename
+# and
+git checkout -- filename
+# or
+git restore --staged filename or .
+
+
+```
+
+#### 課題１
+
