@@ -2,9 +2,9 @@
 
 このセクションで取り扱う話
 
-- commit に関して深堀する
-- 異なるブランチの統合と管理について
-- コンフリクトの解決について
+-   commit に関して深堀する
+-   異なるブランチの統合と管理について
+-   コンフリクトの解決について
 
 ## git stash で一旦退避しておく
 
@@ -318,19 +318,19 @@ https://git-scm.com/docs/git-reflog
 
 このコマンドは、reflog に記録されている情報を管理するものです。
 
-- `git reflog show`
+-   `git reflog show`
 
 コマンドラインで与えられた参照（デフォルトでは HEAD）のログを表示します。reflog は最近のすべてのアクションをカバーし、さらに HEAD reflog はブランチの切り替えを記録します。git reflog show は git log -g --abbrev-commit --pretty=oneline のエイリアスで、より詳しい情報は git-log[1] をご覧ください。
 
-- `git reflog expire`
+-   `git reflog expire`
 
 古い reflog のエントリを削除します。expire 時間より古いエントリ、あるいは expire-unreachable 時間より古いエントリで現在の tip から到達できないものは、reflog から削除されます。これは通常、エンドユーザーが直接使うことはありません。代わりに git-gc[1] を参照してください。
 
-- `git reflog delete`
+-   `git reflog delete`
 
 reflog から単一のエントリを削除します。引数には正確なエントリを指定しなければなりません (例: "git reflog delete master@{2}")。また、このサブコマンドは通常エンドユーザーが直接使用することはありません。
 
-- `git reflog exists`
+-   `git reflog exists`
 
 reflog が存在するかどうかをチェックします。reflog が存在すればゼロステータスで、存在しなければ非ゼロステータスで終了します。
 
@@ -679,3 +679,55 @@ bafb391 Added dummy file to make sure how detached HEAD works
 ```
 
 これで feature-ブランチが復活した。
+
+#### 54: Combining branch. What & Why?
+
+マスターブランチと feature ブランチをどのように組み合わせることができるのか
+
+を理解するために、
+
+merge, rebase について学ぶ
+
+#### 55: Understanding Merge Types
+
+merge には 2 つの方法があり、
+
+-   `Fast-Forward`
+
+-   `Non Fast-Forwad`
+
+`Non Fast-Forward`にはいくつかオプションがある。
+
+その一つが`Recursive`で、
+
+fast-forward と non fast-forward recursive が主な使用方法になる。
+
+fast-forward:
+
+たとえば master と feature の 2 つのブランチがあるとする
+
+feature で機能開発が完了して、master から分岐してから 3 度 feature ブランチに commit したとする。
+
+さて master ブランチにこの feature ブランチを統合したいけれど
+
+この時どうすればいいのか
+
+その時使うのが fast-forward の merge である。
+
+fast-forward の merge が機能するための条件は、
+
+feature ブランチが作成されてから master ブランチに一切コミットがされていないことである。
+
+#### 自習：git merge
+
+https://www.atlassian.com/ja/git/tutorials/using-branches/git-merge
+
+https://tracpath.com/docs/git-merge/
+
+コミット履歴とブランチが以下のような場合を想定する
+
+```
+	A---B---C feature
+	/
+D---E---F---G master
+```
